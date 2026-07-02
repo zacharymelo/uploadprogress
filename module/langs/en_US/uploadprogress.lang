@@ -1,0 +1,13 @@
+# Module
+Module598898Name = Upload Progress
+Module598898Desc = Real-time file upload progress bar displayed at the bottom of the screen
+
+# Admin
+UploadProgressSetup = Upload Progress - Setup
+Setting = Setting
+Value = Value
+Description = Description
+
+# Debug
+DebugMode = Debug Mode
+DebugModeDesc = Enables browser console logging and the diagnostic endpoint at /custom/uploadprogress/ajax/debug.php
