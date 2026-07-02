@@ -4,9 +4,8 @@
 /**
  * \file    core/modules/modUploadprogress.class.php
  * \ingroup uploadprogress
- * \brief   Module descriptor for Upload Progress
+ * \brief   Description and activation file for module UploadProgress
  */
-
 include_once DOL_DOCUMENT_ROOT.'/core/modules/DolibarrModules.class.php';
 
 class modUploadprogress extends DolibarrModules
@@ -14,29 +13,47 @@ class modUploadprogress extends DolibarrModules
 	public function __construct($db)
 	{
 		global $langs, $conf;
-		parent::__construct($db);
 
-		$this->numero        = 598898;
-		$this->rights_class  = 'uploadprogress';
-		$this->family        = 'technic';
+		$this->db = $db;
+
+		$this->numero          = 598898;
+		$this->family          = 'technic';
 		$this->module_position = '90';
-		$this->name          = preg_replace('/^mod/i', '', get_class($this));
-		$this->description   = 'Real-time file upload progress bar displayed at the bottom of the screen';
-		$this->version       = '1.0.1';
-		$this->picto         = 'technic';
+		$this->name            = preg_replace('/^mod/i', '', get_class($this));
+		$this->description     = 'Real-time file upload progress bar displayed at the bottom of the screen';
+		$this->version         = '1.0.2';
+		$this->const_name      = 'MAIN_MODULE_'.strtoupper($this->name);
+		$this->picto           = 'technic';
 
 		$this->module_parts = array(
-			'hooks' => array(
-				'data'   => array('printCommonFooter'),
-				'entity' => '0',
-			),
+			'triggers'      => 0,
+			'login'         => 0,
+			'substitutions' => 0,
+			'menus'         => 0,
+			'hooks'         => array('data' => array('printCommonFooter'), 'entity' => '0'),
 		);
 
-		$this->depends      = array();
+		$this->dirs    = array();
+		$this->hidden  = false;
+		$this->depends = array();
 		$this->requiredby   = array();
+		$this->conflictwith = array();
 		$this->langfiles    = array('uploadprogress@uploadprogress');
 		$this->phpmin       = array(7, 0);
 		$this->need_dolibarr_version = array(16, 0);
+		$this->warnings_activation     = array();
+		$this->warnings_activation_ext = array();
+
+		$this->const       = array();
+		$this->tabs        = array();
+		$this->dictionaries = array();
+		$this->boxes       = array();
+		$this->cronjobs    = array();
+
+		$this->rights       = array();
+		$this->rights_class = 'uploadprogress';
+		$this->menu         = array();
+
 		$this->config_page_url = array('setup.php@uploadprogress');
 	}
 
