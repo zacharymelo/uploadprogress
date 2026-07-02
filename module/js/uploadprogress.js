@@ -73,12 +73,15 @@
         c.style.display = "flex";
     }
 
-    function updateRow(r, pct, done, error) {
+    function updateRow(r, pct, done, error, msg) {
         if (error) {
             r.fill.style.background = "#ef5350";
             r.pctEl.textContent = "Error";
             r.row.style.opacity = "0.7";
-            setTimeout(function () { removeRow(r); }, 3500);
+            if (msg) {
+                r.row.querySelector("span").textContent = msg;
+            }
+            setTimeout(function () { removeRow(r); }, 5000);
             return;
         }
         r.fill.style.width = pct + "%";
@@ -112,6 +115,17 @@
 
         xhr.addEventListener("load", function () {
             log("load", r.id, xhr.status, xhr.responseURL);
+
+            // Treat anything outside 2xx/3xx as a server-side failure.
+            // status === 0 means PHP killed the connection (e.g. post_max_size exceeded).
+            if (xhr.status === 0 || xhr.status >= 400) {
+                var msg = xhr.status === 0
+                    ? "Upload failed — file may exceed the server size limit"
+                    : "Server error (" + xhr.status + ")";
+                updateRow(r, 0, false, true, msg);
+                return;
+            }
+
             updateRow(r, 100, true, false);
             var dest = xhr.responseURL || "";
             setTimeout(function () {
@@ -123,8 +137,12 @@
             }, 700);
         });
 
-        xhr.addEventListener("error", function () { updateRow(r, 0, false, true); });
-        xhr.addEventListener("abort", function () { updateRow(r, 0, false, true); });
+        xhr.addEventListener("error", function () {
+            updateRow(r, 0, false, true, "Network error during upload");
+        });
+        xhr.addEventListener("abort", function () {
+            updateRow(r, 0, false, true, "Upload cancelled");
+        });
 
         var action = form.getAttribute("action") || window.location.href;
         var method = (form.getAttribute("method") || "POST").toUpperCase();
