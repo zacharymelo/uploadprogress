@@ -23,30 +23,25 @@ print "Dolibarr: ".(defined('DOL_VERSION') ? DOL_VERSION : 'unknown')."\n\n";
 print "--- MODULE STATUS ---\n";
 print "isModEnabled('uploadprogress'): ".(isModEnabled('uploadprogress') ? 'YES' : 'NO')."\n\n";
 
-print "--- HOOK REGISTRATION ---\n";
+print "--- JS INJECTION (module_parts['js']) ---\n";
 $sql = "SELECT name, value FROM ".MAIN_DB_PREFIX."const"
-	." WHERE name = 'MAIN_MODULE_UPLOADPROGRESS_HOOKS'"
+	." WHERE name = 'MAIN_MODULE_UPLOADPROGRESS_JS'"
 	." AND entity IN (0, ".((int) $conf->entity).")";
 $resql = $db->query($sql);
 if ($resql && ($row = $db->fetch_object($resql))) {
-	print "MAIN_MODULE_UPLOADPROGRESS_HOOKS = $row->value\n";
+	print "MAIN_MODULE_UPLOADPROGRESS_JS = $row->value\n";
 } else {
-	print "MAIN_MODULE_UPLOADPROGRESS_HOOKS = (not found — module may not be enabled)\n";
+	print "MAIN_MODULE_UPLOADPROGRESS_JS = (not found — module may not be enabled)\n";
 }
 
-print "\nhookmanager contexts registered for uploadprogress:\n";
-if (isset($conf->modules_parts['hooks'])) {
-	$found = false;
-	foreach ($conf->modules_parts['hooks'] as $context => $modules) {
-		$list = is_array($modules) ? $modules : array($modules);
-		foreach ($list as $mod) {
-			if (stripos($mod, 'uploadprogress') !== false) {
-				print "  context='$context' module='$mod'\n";
-				$found = true;
-			}
-		}
+print "\nmodules_parts['js'] for uploadprogress:\n";
+if (!empty($conf->modules_parts['js']['uploadprogress'])) {
+	foreach ((array) $conf->modules_parts['js']['uploadprogress'] as $jsfile) {
+		$url = dol_buildpath($jsfile, 1);
+		print "  $jsfile => $url (".(file_exists(dol_buildpath($jsfile, 0)) ? 'file exists' : 'FILE MISSING').")\n";
 	}
-	if (!$found) print "  (none — check module is enabled and hooks are registered)\n";
+} else {
+	print "  (not registered — disable and re-enable the module)\n";
 }
 
 print "\n--- SETTINGS ---\n";

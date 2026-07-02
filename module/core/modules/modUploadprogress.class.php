@@ -21,7 +21,7 @@ class modUploadprogress extends DolibarrModules
 		$this->module_position = '90';
 		$this->name            = preg_replace('/^mod/i', '', get_class($this));
 		$this->description     = 'Real-time file upload progress bar displayed at the bottom of the screen';
-		$this->version         = '1.0.3';
+		$this->version         = '1.0.4';
 		$this->const_name      = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto           = 'technic';
 
@@ -30,7 +30,7 @@ class modUploadprogress extends DolibarrModules
 			'login'         => 0,
 			'substitutions' => 0,
 			'menus'         => 0,
-			'hooks'         => array('data' => array('main'), 'entity' => '0'),
+			'js'            => array('/uploadprogress/js/uploadprogress.js'),
 		);
 
 		$this->dirs    = array();
