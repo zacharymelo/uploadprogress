@@ -1,6 +1,6 @@
 # Module
-Module598898Name = Upload Progress
-Module598898Desc = Real-time file upload progress bar displayed at the bottom of the screen
+Module194301Name = Upload Progress
+Module194301Desc = Real-time file upload progress bar displayed at the bottom of the screen
 
 # Admin
 UploadProgressSetup = Upload Progress - Setup

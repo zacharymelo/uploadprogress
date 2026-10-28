@@ -16,12 +16,12 @@ class modUploadprogress extends DolibarrModules
 
 		$this->db = $db;
 
-		$this->numero          = 598898;
+		$this->numero          = 194301;
 		$this->family          = 'technic';
 		$this->module_position = '90';
 		$this->name            = preg_replace('/^mod/i', '', get_class($this));
 		$this->description     = 'Real-time file upload progress bar displayed at the bottom of the screen';
-		$this->version         = '1.0.5';
+		$this->version         = '1.1.0';
 		$this->const_name      = 'MAIN_MODULE_'.strtoupper($this->name);
 		$this->picto           = 'technic';
 
