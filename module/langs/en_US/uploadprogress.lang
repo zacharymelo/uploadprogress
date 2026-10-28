@@ -10,4 +10,4 @@ Description = Description
 
 # Debug
 DebugMode = Debug Mode
-DebugModeDesc = Enables browser console logging and the diagnostic endpoint at /custom/uploadprogress/ajax/debug.php
+DebugModeDesc = Enables browser console logging and the diagnostic endpoint at %s

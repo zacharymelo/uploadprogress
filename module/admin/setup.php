@@ -31,7 +31,7 @@ print '</tr>';
 print '<tr class="oddeven">';
 print '<td>'.$langs->trans('DebugMode').'</td>';
 print '<td>'.ajax_constantonoff('UPLOADPROGRESS_DEBUG_MODE').'</td>';
-print '<td class="opacitymedium">'.$langs->trans('DebugModeDesc').'</td>';
+print '<td class="opacitymedium">'.$langs->trans('DebugModeDesc', dol_buildpath('/uploadprogress/ajax/debug.php', 1)).'</td>';
 print '</tr>';
 
 print '</table>';

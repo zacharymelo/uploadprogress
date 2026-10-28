@@ -60,7 +60,7 @@ if ($resql2) {
 }
 
 print "\n--- ACTIONS CLASS ---\n";
-$actionsFile = DOL_DOCUMENT_ROOT.'/custom/uploadprogress/class/actions_uploadprogress.class.php';
+$actionsFile = dol_buildpath('/uploadprogress/class/actions_uploadprogress.class.php', 0);
 print "File exists: ".(file_exists($actionsFile) ? 'YES' : 'NO')."\n";
 if (file_exists($actionsFile)) {
 	include_once $actionsFile;
@@ -71,7 +71,7 @@ if (file_exists($actionsFile)) {
 }
 
 print "\n--- JS FILE ---\n";
-$jsFile = DOL_DOCUMENT_ROOT.'/custom/uploadprogress/js/uploadprogress.js';
+$jsFile = dol_buildpath('/uploadprogress/js/uploadprogress.js', 0);
 print "File exists: ".(file_exists($jsFile) ? 'YES' : 'NO')."\n";
 if (file_exists($jsFile)) {
 	print "File size: ".filesize($jsFile)." bytes\n";

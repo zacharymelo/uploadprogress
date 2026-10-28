@@ -25,11 +25,12 @@
         if (container) return container;
         container = document.createElement("div");
         container.id = "uploadprogress-container";
+        // Colours come from the active Dolibarr theme's CSS variables (fallbacks = eldy defaults).
         container.style.cssText = "position:fixed;bottom:0;left:0;right:0;z-index:99999;"
-            + "background:#1c2233;color:#e8eaf6;"
-            + "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;"
+            + "background:var(--colorbackbody, #fff);color:var(--colortext, #000);"
+            + "font-family:inherit;font-size:inherit;"
             + "display:none;flex-direction:column;"
-            + "box-shadow:0 -3px 16px rgba(0,0,0,0.45);border-top:2px solid #3d5afe;";
+            + "box-shadow:0 -2px 8px rgba(0,0,0,0.15);border-top:2px solid var(--colorbackhmenu1, #3c4664);";
         document.body.appendChild(container);
         return container;
     }
@@ -38,27 +39,30 @@
         var id = "upr-" + (++seq);
         var row = document.createElement("div");
         row.id = id;
-        row.style.cssText = "padding:10px 18px 12px;border-top:1px solid rgba(255,255,255,0.07);";
+        row.style.cssText = "padding:10px 18px 12px;border-top:1px solid var(--colorboxstatsborder, #e0e0e0);";
 
         var hdr = document.createElement("div");
         hdr.style.cssText = "display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;";
 
         var nameEl = document.createElement("span");
-        nameEl.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:75%;opacity:0.9;";
+        nameEl.className = "opacitymedium";
+        nameEl.style.cssText = "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:75%;";
         nameEl.textContent = label;
 
         var pctEl = document.createElement("span");
-        pctEl.style.cssText = "font-weight:600;font-size:12px;min-width:44px;text-align:right;";
+        pctEl.style.cssText = "font-weight:600;min-width:44px;text-align:right;";
         pctEl.textContent = "0%";
 
         hdr.appendChild(nameEl);
         hdr.appendChild(pctEl);
 
+        // Dolibarr's own progress bar classes (theme/<theme>/progress.inc.php).
         var track = document.createElement("div");
-        track.style.cssText = "background:rgba(255,255,255,0.12);border-radius:6px;height:5px;overflow:hidden;";
+        track.className = "progress progress-sm";
 
         var fill = document.createElement("div");
-        fill.style.cssText = "height:100%;width:0%;background:#3d5afe;border-radius:6px;transition:width 0.12s ease;";
+        fill.className = "progress-bar progress-bar-primary";
+        fill.style.width = "0%";
 
         track.appendChild(fill);
         row.appendChild(hdr);
@@ -75,7 +79,8 @@
 
     function updateRow(r, pct, done, error, msg) {
         if (error) {
-            r.fill.style.background = "#ef5350";
+            r.fill.className = "progress-bar progress-bar-danger";
+            r.fill.style.width = "100%";
             r.pctEl.textContent = "Error";
             r.row.style.opacity = "0.7";
             if (msg) {
@@ -87,7 +92,7 @@
         r.fill.style.width = pct + "%";
         r.pctEl.textContent = done ? "done" : pct + "%";
         if (done) {
-            r.fill.style.background = "#00c853";
+            r.fill.className = "progress-bar progress-bar-success";
             setTimeout(function () { removeRow(r); }, 1400);
         }
     }
@@ -97,6 +102,21 @@
         if (el) el.remove();
         var c = getContainer();
         if (!c.querySelector("[id^='upr-']")) c.style.display = "none";
+    }
+
+    // Display the page the server returned for the upload instead of requesting it again.
+    // A reload/GET would lose one-time output already consumed by the XHR
+    // (event messages, post-deploy prompts, etc).
+    function renderResponse(html, url) {
+        if (url && window.history && window.history.replaceState) {
+            try { window.history.replaceState(null, "", url); } catch (e) { log("replaceState failed", e); }
+        }
+        // document.open() keeps the same window, so let the new page's copy of this script re-init.
+        window.__uploadProgressInit = false;
+        container = null;
+        document.open();
+        document.write(html);
+        document.close();
     }
 
     function submitViaXhr(form, label) {
@@ -128,8 +148,11 @@
 
             updateRow(r, 100, true, false);
             var dest = xhr.responseURL || "";
+            var ctype = xhr.getResponseHeader("Content-Type") || "";
             setTimeout(function () {
-                if (dest && dest !== window.location.href) {
+                if (ctype.indexOf("text/html") !== -1 && xhr.responseText) {
+                    renderResponse(xhr.responseText, dest);
+                } else if (dest && dest !== window.location.href) {
                     window.location.href = dest;
                 } else {
                     window.location.reload();
