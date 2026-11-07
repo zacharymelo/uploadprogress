@@ -119,7 +119,23 @@
         document.close();
     }
 
-    function submitViaXhr(form, label) {
+    // FormData(form) leaves out the button that submitted the form, but Dolibarr
+    // keys on it: document/photo uploads only run when "sendit" is in the POST
+    // (core/actions_linkedfiles.inc.php). Add it back the way a normal submit would.
+    function buildFormData(form, submitter) {
+        var fd = new FormData(form);
+        if (submitter && submitter.name && !submitter.disabled) {
+            if ((submitter.type || "").toLowerCase() === "image") {
+                fd.append(submitter.name + ".x", "0");
+                fd.append(submitter.name + ".y", "0");
+            } else {
+                fd.append(submitter.name, submitter.value || "");
+            }
+        }
+        return fd;
+    }
+
+    function submitViaXhr(form, label, submitter) {
         var r = createRow(label);
         showRow(r);
 
@@ -170,7 +186,7 @@
         var action = form.getAttribute("action") || window.location.href;
         var method = (form.getAttribute("method") || "POST").toUpperCase();
         xhr.open(method, action, true);
-        xhr.send(new FormData(form));
+        xhr.send(buildFormData(form, submitter));
         log("started", label, method, action);
     }
 
@@ -184,14 +200,24 @@
         if (form.__upAttached) return;
         form.__upAttached = true;
 
+        // Fallback for browsers without SubmitEvent.submitter: remember the last clicked submit button.
+        form.addEventListener("click", function (e) {
+            var t = e.target && e.target.closest ? e.target.closest("button, input") : null;
+            if (t && t.form === form && /^(submit|image)$/i.test(t.type || "")) form.__upSubmitter = t;
+        }, true);
+
         form.addEventListener("submit", function (e) {
+            var submitter = e.submitter || form.__upSubmitter || null;
+            form.__upSubmitter = null;
+            // A Cancel button with a file still selected should not be shown as an upload.
+            if (submitter && submitter.name === "cancel") return;
             var input = form.querySelector("input[type='file']");
             if (!input) return;
             var label = labelFromInput(input);
             if (!label) { log("no file selected, normal submit"); return; }
             e.preventDefault();
-            log("intercepted", label);
-            submitViaXhr(form, label);
+            log("intercepted", label, submitter ? submitter.name : "(no submitter)");
+            submitViaXhr(form, label, submitter);
         });
 
         log("attached", form.id || form.getAttribute("action") || "(form)");
