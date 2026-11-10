@@ -104,6 +104,31 @@
         if (!c.querySelector("[id^='upr-']")) c.style.display = "none";
     }
 
+    // CKEditor writes its text back into the form's textarea from its own submit listener on the form,
+    // which may not have run yet: copy it now, or the POST carries the text the page was loaded with.
+    function syncEditors(form) {
+        var ck = window.CKEDITOR;
+        if (!ck || !ck.instances) return;
+        Object.keys(ck.instances).forEach(function (name) {
+            var ed = ck.instances[name];
+            try {
+                if (ed.element && ed.element.$ && form.contains(ed.element.$)) ed.updateElement();
+            } catch (e) { log("CKEditor sync failed", name, e); }
+        });
+    }
+
+    // The returned page loads CKEditor again, but ckeditor.js keeps the old global when it finds one, with its
+    // instances and its "skin already loaded" state, while document.open() has dropped the skin's styles:
+    // the new editor comes up broken. Remove the old copy so the page starts a fresh one.
+    function resetEditors() {
+        var ck = window.CKEDITOR;
+        if (!ck) return;
+        try {
+            Object.keys(ck.instances || {}).forEach(function (name) { ck.instances[name].destroy(true); });
+        } catch (e) { log("CKEditor destroy failed", e); }
+        window.CKEDITOR = undefined;
+    }
+
     // Display the page the server returned for the upload instead of requesting it again.
     // A reload/GET would lose one-time output already consumed by the XHR
     // (event messages, post-deploy prompts, etc).
@@ -114,6 +139,7 @@
         // document.open() keeps the same window, so let the new page's copy of this script re-init.
         window.__uploadProgressInit = false;
         container = null;
+        resetEditors();
         document.open();
         document.write(html);
         document.close();
@@ -186,74 +212,49 @@
         var action = form.getAttribute("action") || window.location.href;
         var method = (form.getAttribute("method") || "POST").toUpperCase();
         xhr.open(method, action, true);
+        syncEditors(form);
         xhr.send(buildFormData(form, submitter));
         log("started", label, method, action);
     }
 
-    function labelFromInput(input) {
-        var files = input.files;
-        if (!files || !files.length) return null;
-        return files.length === 1 ? files[0].name : files.length + " files";
+    function labelFromForm(form) {
+        var names = [];
+        var inputs = form.querySelectorAll("input[type='file']");
+        for (var i = 0; i < inputs.length; i++) {
+            var files = inputs[i].disabled ? null : inputs[i].files;
+            for (var j = 0; files && j < files.length; j++) names.push(files[j].name);
+        }
+        if (!names.length) return null;
+        return names.length === 1 ? names[0] : names.length + " files";
     }
 
-    function attachToForm(form) {
-        if (form.__upAttached) return;
-        form.__upAttached = true;
-
+    // One listener on the document, not on each form: submit bubbles here after the page's own submit listeners
+    // on the form (CKEditor's, validation), so a submit one of them cancelled stays cancelled. Forms added later
+    // (dialogs, AJAX) need no extra wiring.
+    function init() {
         // Fallback for browsers without SubmitEvent.submitter: remember the last clicked submit button.
-        form.addEventListener("click", function (e) {
+        document.addEventListener("click", function (e) {
             var t = e.target && e.target.closest ? e.target.closest("button, input") : null;
-            if (t && t.form === form && /^(submit|image)$/i.test(t.type || "")) form.__upSubmitter = t;
+            if (t && t.form && /^(submit|image)$/i.test(t.type || "")) t.form.__upSubmitter = t;
         }, true);
 
-        form.addEventListener("submit", function (e) {
+        document.addEventListener("submit", function (e) {
+            var form = e.target;
+            if (!form || form.tagName !== "FORM") return;
             var submitter = e.submitter || form.__upSubmitter || null;
             form.__upSubmitter = null;
+            if (e.defaultPrevented) { log("submit cancelled by the page"); return; }
             // A Cancel button with a file still selected should not be shown as an upload.
             if (submitter && submitter.name === "cancel") return;
-            var input = form.querySelector("input[type='file']");
-            if (!input) return;
-            var label = labelFromInput(input);
+            // A target other than the page itself (a new tab, an iframe) gets the normal submit
+            var target = (submitter && submitter.getAttribute("formtarget")) || form.getAttribute("target") || "";
+            if (target && target !== "_self") return;
+            var label = labelFromForm(form);
             if (!label) { log("no file selected, normal submit"); return; }
             e.preventDefault();
             log("intercepted", label, submitter ? submitter.name : "(no submitter)");
             submitViaXhr(form, label, submitter);
         });
-
-        log("attached", form.id || form.getAttribute("action") || "(form)");
-    }
-
-    function scanForms() {
-        var forms = document.querySelectorAll("form");
-        for (var i = 0; i < forms.length; i++) {
-            if (forms[i].querySelector("input[type='file']")) attachToForm(forms[i]);
-        }
-    }
-
-    function init() {
-        scanForms();
-
-        if (window.MutationObserver) {
-            new MutationObserver(function (mutations) {
-                for (var i = 0; i < mutations.length; i++) {
-                    var added = mutations[i].addedNodes;
-                    for (var j = 0; j < added.length; j++) {
-                        var node = added[j];
-                        if (node.nodeType !== 1) continue;
-                        if (node.tagName === "FORM" && node.querySelector("input[type='file']")) {
-                            attachToForm(node);
-                        }
-                        if (node.querySelectorAll) {
-                            var nested = node.querySelectorAll("form");
-                            for (var k = 0; k < nested.length; k++) {
-                                if (nested[k].querySelector("input[type='file']")) attachToForm(nested[k]);
-                            }
-                        }
-                    }
-                }
-            }).observe(document.body, { childList: true, subtree: true });
-            log("MutationObserver active");
-        }
 
         log("initialized");
     }
